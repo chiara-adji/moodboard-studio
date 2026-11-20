@@ -743,6 +743,8 @@ const EVENT_PRESETS = {
       document.getElementById('uploadEventName').textContent = ev.name;
       document.getElementById('customNoteInput').value = ev.customNote || '';
       document.getElementById('videoSongTitle').value = ev.videoSongTitle || '';
+      const rkInp = document.getElementById('rapidApiKeyInput');
+      if (rkInp) rkInp.value = getSavedRapidApiKey();
       document.getElementById('songLookupStatus').textContent = (ev.matchedMusic && ev.videoSongTitle) ? `Konsep aktif: ${ev.matchedMusic.concept}` : '';
       document.getElementById('brideAngleSelect').value = state.brideAngle || 'Bebas, kedua sisi wajah sama bagus';
       document.getElementById('brideAngleNote').value = state.brideAngleNote || '';
@@ -972,7 +974,12 @@ ${ev.donts}${extraNote}`;
     }
 
 
-    const SHAZAM_ENDPOINT = '/api/detect-song';
+    const SHAZAM_DIRECT_URL = 'https://shazam.p.rapidapi.com/songs/v2/detect';
+    const RAPIDAPI_STORAGE_KEY = 'wedding_moodboard_rapidapi_key';
+
+    function getSavedRapidApiKey() {
+      try { return localStorage.getItem(RAPIDAPI_STORAGE_KEY) || ''; } catch (e) { return ''; }
+    }
 
     async function extractPcmBase64FromVideo(file) {
       try {
@@ -1013,11 +1020,17 @@ ${ev.donts}${extraNote}`;
 
     async function detectSongViaShazamProxy(file) {
       try {
+        const apiKey = getSavedRapidApiKey().trim();
+        if (!apiKey) return null;
         const base64Audio = await extractPcmBase64FromVideo(file);
         if (!base64Audio) return null;
-        const res = await fetch(SHAZAM_ENDPOINT, {
+        const res = await fetch(SHAZAM_DIRECT_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
+          headers: {
+            'content-type': 'text/plain',
+            'x-rapidapi-key': apiKey,
+            'x-rapidapi-host': 'shazam.p.rapidapi.com'
+          },
           body: base64Audio
         });
         if (!res.ok) return null;
@@ -1602,6 +1615,10 @@ ${ev.donts}${extraNote}`;
         statusEl.textContent = '';
       }
     }
+
+    document.getElementById('rapidApiKeyInput').addEventListener('input', (e) => {
+      try { localStorage.setItem(RAPIDAPI_STORAGE_KEY, e.target.value.trim()); } catch (err) {}
+    });
 
     document.getElementById('btnLookupSong').addEventListener('click', runSongLookup);
     document.getElementById('videoSongTitle').addEventListener('keydown', (e) => {
