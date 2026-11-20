@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wedding Moodboard &amp; Brief Studio</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="min-h-screen antialiased">
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden items-center gap-2 rounded-xl bg-[#1f1d1a] px-4 py-3 text-sm font-medium text-white shadow-lg transition-all">
+    <span id="toastText">Tersimpan</span>
+  </div>
+
+  <!-- Top Bar -->
+  <header class="sticky top-0 z-30 border-b border-[#e8e1d7] bg-[#faf8f5]/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <div>
+        <h1 class="font-serif-display text-xl font-semibold tracking-tight text-[#1f1d1a] sm:text-2xl">
+          Wedding Moodboard &amp; Auto-Brief
+        </h1>
+        <p class="text-xs text-[#6b655e]">
+          Analisis mendalam foto &amp; audio video untuk brief Fotografer, Videografer, dan WCC
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btnCopyWA" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-[#d6ccbe] bg-white px-3 py-2 text-xs font-medium text-[#1f1d1a] hover:bg-[#f2ece3] transition">
+          <span>Salin Brief (WA)</span>
+        </button>
+        <button id="btnDownloadPNG" type="button" class="inline-flex items-center gap-1.5 rounded-lg bg-[#8c6d46] px-3.5 py-2 text-xs font-medium text-white hover:bg-[#755a39] transition">
+          <span>Unduh Kolase (PNG)</span>
+        </button>
+        <button id="btnDownloadPDF" type="button" class="inline-flex items-center gap-1.5 rounded-lg bg-[#1f1d1a] px-3.5 py-2 text-xs font-medium text-white hover:bg-[#38342e] transition">
+          <span>Unduh PDF</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Event Tabs -->
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 overflow-x-auto px-4 pb-3 sm:px-6">
+      <div class="flex items-center gap-2" id="eventTabs">
+        <button type="button" data-event="pengajian" class="event-tab rounded-full px-4 py-1.5 text-xs font-medium transition tab-active">
+          1. Pengajian
+        </button>
+        <button type="button" data-event="siraman" class="event-tab rounded-full px-4 py-1.5 text-xs font-medium bg-white border border-[#e8e1d7] text-[#1f1d1a] hover:bg-[#f2ece3] transition">
+          2. Siraman
+        </button>
+        <button type="button" data-event="harih" class="event-tab rounded-full px-4 py-1.5 text-xs font-medium bg-white border border-[#e8e1d7] text-[#1f1d1a] hover:bg-[#f2ece3] transition">
+          3. Hari-H (Akad &amp; Resepsi)
+        </button>
+      </div>
+      <button id="btnResetSamples" type="button" class="shrink-0 text-xs font-medium text-[#8c6d46] underline underline-offset-4 hover:text-[#6b5233]">
+        Muat Contoh Referensi
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <!-- Event Info + Bride Angle + WCC Quick Settings -->
+    <section class="mb-6 rounded-2xl border border-[#e8e1d7] bg-white p-4 sm:p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-[#6b655e]">Info Acara, Angle Bride &amp; WCC</h2>
+        <span class="text-xs text-[#6b655e]">Langsung masuk ke brief Fotografer, Videografer &amp; WCC</span>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <label class="mb-1 block text-xs font-medium text-[#6b655e]">Nama Mempelai</label>
+          <input id="globalCouple" type="text" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-sm focus:border-[#8c6d46] focus:outline-none" placeholder="cth: Chiara &amp; Adji" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-[#6b655e]">PIC / Kontak WO</label>
+          <input id="globalWO" type="text" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-sm focus:border-[#8c6d46] focus:outline-none" placeholder="cth: Tim WO (0812-xxxx)" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-[#6b655e]">Tanggal &amp; Jam Sesi</label>
+          <input id="eventDateTime" type="text" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-sm focus:border-[#8c6d46] focus:outline-none" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-[#6b655e]">Lokasi / Venue</label>
+          <input id="eventVenue" type="text" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-sm focus:border-[#8c6d46] focus:outline-none" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 border-t border-[#e8e1d7] pt-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <label class="mb-1 block text-xs font-medium text-[#6b655e]">Angle Wajah Bride (Sisi Terbaik)</label>
+          <select id="brideAngleSelect" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-sm focus:border-[#8c6d46] focus:outline-none">
+            <option value="Bebas, kedua sisi wajah sama bagus">Bebas, kedua sisi sama bagus</option>
+            <option value="Lebih percaya diri sisi kiri wajah (left profile)">Lebih suka sisi kiri wajah</option>
+            <option value="Lebih percaya diri sisi kanan wajah (right profile)">Lebih suka sisi kanan wajah</option>
+            <option value="Prioritaskan sisi kiri, hindari angle dari bawah (low angle)">Sisi kiri + hindari angle bawah</option>
+            <option value="Prioritaskan sisi kanan, hindari angle dari bawah (low angle)">Sisi kanan + hindari angle bawah</option>
+          </select>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-[#6b655e]">Catatan Tambahan Angle Bride</label>
+          <input id="brideAngleNote" type="text" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-sm focus:border-[#8c6d46] focus:outline-none" placeholder="cth: Waktu close-up atau sungkeman ambil dari serong kiri" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-[#6b655e]">Fokus WCC (Wedding Content Creator)</label>
+          <select id="wccFocusSelect" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-sm focus:border-[#8c6d46] focus:outline-none">
+            <option value="BTS natural, klip vertikal 9:16 siap Reels/TikTok, &amp; raw clips H+1">BTS natural + 9:16 Reels + raw clips H+1</option>
+            <option value="Klip emosional &amp; estetik tanpa banyak arahan tren TikTok">Estetik &amp; emosional (tanpa tren/joget)</option>
+            <option value="Fokus interaksi tamu, keluarga, dan POV pengantin dari pagi">POV pengantin + interaksi keluarga &amp; tamu</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <!-- Left Column: Upload + Uncropped Collage -->
+      <div class="space-y-6 lg:col-span-7">
+        <!-- Upload Section -->
+        <section class="rounded-2xl border border-[#e8e1d7] bg-white p-4 sm:p-5">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-semibold text-[#1f1d1a]">1. Unggah Foto &amp; Video Inspirasi</h2>
+              <p class="text-xs text-[#6b655e]">
+                Masukkan referensi untuk sesi <span id="uploadEventName" class="font-medium text-[#1f1d1a]">Pengajian</span> — sistem menganalisis karakter visual dan audio video secara otomatis
+              </p>
+            </div>
+            <button id="btnClearMedia" type="button" class="rounded-lg border border-[#e8e1d7] px-2.5 py-1.5 text-xs font-medium text-[#6b655e] hover:bg-[#faf8f5]">
+              Kosongkan Media
+            </button>
+          </div>
+
+          <label id="dropZone" for="mediaInput" class="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#d6ccbe] bg-[#faf8f5] px-4 py-6 text-center transition hover:border-[#8c6d46] hover:bg-[#f2ece3]/50">
+            <svg class="mb-2 h-7 w-7 text-[#8c6d46]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+            </svg>
+            <span class="text-sm font-medium text-[#1f1d1a]">Klik untuk pilih foto/video atau seret ke sini</span>
+            <span class="mt-0.5 text-xs text-[#6b655e]">JPG, PNG, WEBP, serta MP4/MOV/WEBM (frame visual &amp; tempo audio dianalisis di browser)</span>
+            <input id="mediaInput" type="file" accept="image/*,video/*" multiple class="hidden" />
+          </label>
+
+          <!-- Song title lookup -> auto concept & similar songs -->
+          <div class="mt-3 rounded-xl border border-[#e8e1d7] bg-[#faf8f5] p-3">
+            <label class="mb-1 block text-xs font-medium text-[#6b655e]">Judul / Artis Lagu di Video (Opsional — ketik judulnya lalu klik Cari Lagu Mirip)</label>
+            <div class="flex gap-2">
+              <input id="videoSongTitle" type="text" placeholder="cth: Canon in D / Experience - Ludovico Einaudi / La Vie En Rose" class="flex-1 rounded-lg border border-[#e8e1d7] bg-white px-3 py-1.5 text-xs focus:border-[#8c6d46] focus:outline-none" />
+              <button id="btnLookupSong" type="button" class="shrink-0 rounded-lg bg-[#8c6d46] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#755a39] transition">
+                Cari Lagu Mirip
+              </button>
+            </div>
+            <p id="songLookupStatus" class="mt-1 text-[11px] text-[#6b655e]"></p>
+          </div>
+
+          <div id="mediaList" class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3"></div>
+        </section>
+
+        <!-- Live Collage Preview (Uncropped Masonry) -->
+        <section class="rounded-2xl border border-[#e8e1d7] bg-white p-4 sm:p-5">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-semibold text-[#1f1d1a]">2. Kolase Moodboard (Tanpa Terpotong)</h2>
+              <p class="text-xs text-[#6b655e]">Rasio asli tiap foto terjaga; klik bulatan warna jika ingin mengubah palet</p>
+            </div>
+            <div class="flex items-center gap-1.5 rounded-lg bg-[#faf8f5] p-1 border border-[#e8e1d7]" id="layoutControls">
+              <button type="button" data-layout="masonry2" class="layout-btn rounded-md px-2.5 py-1 text-xs font-medium bg-[#1f1d1a] text-white">2 Kolom</button>
+              <button type="button" data-layout="masonry3" class="layout-btn rounded-md px-2.5 py-1 text-xs font-medium text-[#6b655e] hover:text-[#1f1d1a]">3 Kolom</button>
+            </div>
+          </div>
+
+          <div id="collageFrame" class="rounded-xl border border-[#e8e1d7] bg-[#faf8f5] p-5">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-[#e8e1d7] pb-3">
+              <div>
+                <p id="collageCoupleLabel" class="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8c6d46]">CHIARA &amp; ADJI</p>
+                <h3 id="collageTitleLabel" class="font-serif-display text-2xl font-semibold text-[#1f1d1a]">Moodboard Pengajian</h3>
+              </div>
+              <div class="text-right">
+                <p id="collageDateLabel" class="text-xs font-medium text-[#1f1d1a]">-</p>
+                <p id="collageToneLabel" class="text-xs text-[#6b655e]">-</p>
+              </div>
+            </div>
+
+            <div id="collagePaletteBar" class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 border border-[#e8e1d7]">
+              <span class="text-[11px] font-medium text-[#6b655e]">Palet Warna (klik untuk ubah):</span>
+              <div id="paletteSwatches" class="flex flex-wrap items-center gap-2.5"></div>
+            </div>
+
+            <div id="collageGrid" class="columns-2 gap-3"></div>
+
+            <div id="collageEmpty" class="hidden py-12 text-center text-sm text-[#6b655e]">
+              Belum ada foto atau video di sesi ini. Unggah referensi di atas agar kolase dan brief terbentuk otomatis.
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Deep Analysis + Music Concept + Editable Brief -->
+      <div class="space-y-6 lg:col-span-5">
+        <section class="rounded-2xl border border-[#e8e1d7] bg-white p-4 sm:p-5">
+          <div class="mb-3 flex items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-semibold text-[#1f1d1a]">3. Analisis Mendalam (Visual &amp; Musik Video)</h2>
+              <p class="text-xs text-[#6b655e]">Berubah dinamis mengikuti karakter piksel, warna, dan tempo audio video</p>
+            </div>
+            <button id="btnReanalyze" type="button" class="rounded-lg bg-[#f2ece3] px-2.5 py-1.5 text-xs font-medium text-[#8c6d46] hover:bg-[#e8dfd2]">
+              Analisis Ulang
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="rounded-xl border border-[#e8e1d7] bg-[#faf8f5] p-3">
+              <p class="text-[11px] font-medium text-[#6b655e]">Karakter Cahaya</p>
+              <p id="metricLighting" class="mt-0.5 text-sm font-semibold text-[#1f1d1a]">-</p>
+              <p id="metricLightingSub" class="mt-0.5 text-[11px] text-[#6b655e]">-</p>
+            </div>
+            <div class="rounded-xl border border-[#e8e1d7] bg-[#faf8f5] p-3">
+              <p class="text-[11px] font-medium text-[#6b655e]">Palet &amp; Suhu Warna</p>
+              <p id="metricTone" class="mt-0.5 text-sm font-semibold text-[#1f1d1a]">-</p>
+              <p id="metricToneSub" class="mt-0.5 text-[11px] text-[#6b655e]">-</p>
+            </div>
+            <div class="rounded-xl border border-[#e8e1d7] bg-[#faf8f5] p-3">
+              <p class="text-[11px] font-medium text-[#6b655e]">Dynamic Range &amp; Gaya</p>
+              <p id="metricContrast" class="mt-0.5 text-sm font-semibold text-[#1f1d1a]">-</p>
+              <p id="metricContrastSub" class="mt-0.5 text-[11px] text-[#6b655e]">-</p>
+            </div>
+            <div class="rounded-xl border border-[#e8e1d7] bg-[#faf8f5] p-3">
+              <p class="text-[11px] font-medium text-[#6b655e]">Konsep Lagu &amp; Tempo</p>
+              <p id="metricMusic" class="mt-0.5 text-sm font-semibold text-[#1f1d1a]">-</p>
+              <p id="metricMusicSub" class="mt-0.5 text-[11px] text-[#6b655e]">-</p>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <label class="mb-1 block text-xs font-medium text-[#6b655e]">Catatan Tambahan (Opsional)</label>
+            <input id="customNoteInput" type="text" placeholder="cth: Tolong prioritaskan foto keluarga inti dan kolega orangtua" class="w-full rounded-lg border border-[#e8e1d7] bg-[#faf8f5] px-3 py-2 text-xs focus:border-[#8c6d46] focus:outline-none" />
+          </div>
+        </section>
+
+        <!-- Editable Brief Box -->
+        <section class="rounded-2xl border border-[#e8e1d7] bg-white p-4 sm:p-5">
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-semibold text-[#1f1d1a]">4. Brief Lengkap (Bisa Diedit Manual)</h2>
+              <div class="mt-0.5 flex items-center gap-2">
+                <span id="briefModeBadge" class="inline-block rounded-full bg-[#f2ece3] px-2 py-0.5 text-[10px] font-medium text-[#8c6d46]">
+                  Otomatis dari Moodboard
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button id="btnResetBriefAuto" type="button" class="rounded-lg border border-[#e8e1d7] bg-white px-2.5 py-1.5 text-xs font-medium text-[#6b655e] hover:bg-[#faf8f5]">
+                Buat Ulang Otomatis
+              </button>
+              <button id="btnCopyWAPanel" type="button" class="rounded-lg bg-[#1f1d1a] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#38342e]">
+                Salin Teks WA
+              </button>
+            </div>
+          </div>
+          <p class="mb-2 text-[11px] text-[#6b655e]">
+            Sudah mencakup arahan Fotografer, Videografer (termasuk konsep &amp; referensi lagu), WCC, dan Angle Wajah Bride. Kamu bebas mengedit langsung di kotak ini.
+          </p>
+          <textarea id="briefEditor" rows="20" class="w-full rounded-xl border border-[#e8e1d7] bg-[#faf8f5] p-3.5 font-sans text-xs leading-relaxed text-[#1f1d1a] focus:border-[#8c6d46] focus:outline-none"></textarea>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

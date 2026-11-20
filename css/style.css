@@ -1,0 +1,21 @@
+:root {
+      --bg-cream: #faf8f5;
+      --bg-card: #ffffff;
+      --ink-dark: #1f1d1a;
+      --ink-muted: #6b655e;
+      --accent: #8c6d46;
+      --accent-soft: #f2ece3;
+      --border-warm: #e8e1d7;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-cream);
+      color: var(--ink-dark);
+    }
+    .font-serif-display {
+      font-family: 'Playfair Display', serif;
+    }
+    .tab-active {
+      background-color: var(--ink-dark);
+      color: #ffffff;
+    }
