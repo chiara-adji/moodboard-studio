@@ -114,7 +114,6 @@ const EVENT_PRESETS = {
       globalWO: 'Tim WO (isi nomor PIC)',
       brideAngle: 'Bebas, kedua sisi wajah sama bagus',
       brideAngleNote: '',
-      wccFocus: 'BTS natural, klip vertikal 9:16 siap Reels/TikTok, & raw clips H+1',
       events: JSON.parse(JSON.stringify(EVENT_PRESETS)),
       media: {
         pengajian: [],
@@ -743,12 +742,9 @@ const EVENT_PRESETS = {
       document.getElementById('uploadEventName').textContent = ev.name;
       document.getElementById('customNoteInput').value = ev.customNote || '';
       document.getElementById('videoSongTitle').value = ev.videoSongTitle || '';
-      const rkInp = document.getElementById('rapidApiKeyInput');
-      if (rkInp) rkInp.value = getSavedRapidApiKey();
       document.getElementById('songLookupStatus').textContent = (ev.matchedMusic && ev.videoSongTitle) ? `Konsep aktif: ${ev.matchedMusic.concept}` : '';
       document.getElementById('brideAngleSelect').value = state.brideAngle || 'Bebas, kedua sisi wajah sama bagus';
       document.getElementById('brideAngleNote').value = state.brideAngleNote || '';
-      document.getElementById('wccFocusSelect').value = state.wccFocus || 'BTS natural, klip vertikal 9:16 siap Reels/TikTok, & raw clips H+1';
 
       renderMediaList(items);
       renderCollage(items, ev, analysis);
@@ -770,7 +766,7 @@ const EVENT_PRESETS = {
 
         const badge = document.createElement('span');
         badge.className = 'absolute left-2 top-2 rounded bg-[#1f1d1a]/80 px-1.5 py-0.5 text-[10px] font-medium text-white';
-        badge.textContent = item.type === 'video' ? (item.bpm ? `VIDEO ${item.bpm} BPM` : 'VIDEO') : 'FOTO';
+        badge.textContent = item.type === 'video' ? (item.videoRole === 'wcc' ? 'VIDEO WCC (9:16)' : 'VIDEO LANSKAP') : 'FOTO';
 
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
@@ -868,7 +864,7 @@ const EVENT_PRESETS = {
         if (item.type === 'video') {
           const vTag = document.createElement('span');
           vTag.className = 'absolute left-2 bottom-2 rounded bg-[#1f1d1a]/80 px-2 py-0.5 text-[10px] font-medium text-white';
-          vTag.textContent = item.bpm ? `Video (${item.bpm} BPM)` : 'Frame Video';
+          vTag.textContent = item.videoRole === 'wcc' ? `WCC 9:16 (${item.timestamp || ''})` : `Video (${item.timestamp || ''})`;
           fig.appendChild(vTag);
         }
         grid.appendChild(fig);
@@ -895,30 +891,98 @@ const EVENT_PRESETS = {
       document.getElementById('metricMusicSub').textContent = analysis.musicSub;
     }
 
+    function summarizeRoleMusic(roleItems, ev, fallbackProfile) {
+      if (!roleItems.length) return null;
+      const withSong = roleItems.find((r) => r.detectedSong);
+      const timestamps = roleItems.map((r) => r.timestamp).filter(Boolean).join(', ');
+      const smooth = roleItems.some((r) => r.isInstrumentalSmooth);
+      const bpm = roleItems.find((r) => r.bpm)?.bpm || null;
+      let profile = (withSong && withSong.songMatchedMusic) ? withSong.songMatchedMusic : null;
+      if (!profile && ev.matchedMusic) profile = ev.matchedMusic;
+      if (!profile) {
+        if (smooth) profile = (bpm && bpm < 78) ? MUSIC_LIBRARY.piano : MUSIC_LIBRARY.orchestral;
+        else if (bpm && bpm > 112) profile = MUSIC_LIBRARY.upbeat;
+        else if (bpm && bpm < 84) profile = MUSIC_LIBRARY.slow;
+        else profile = fallbackProfile || MUSIC_LIBRARY.mid;
+      }
+      return {
+        detectedSong: withSong ? withSong.detectedSong : (ev.videoSongTitle || ''),
+        timestamps,
+        profile
+      };
+    }
+
     function buildAutoBriefText(ev, items, analysis) {
       if (!analysis) {
         return `Unggah minimal 1 foto atau video inspirasi untuk sesi ${ev.name} supaya sistem bisa membaca karakter cahaya, warna, musik, dan menyusun brief lengkap otomatis.`;
       }
 
       const momentsList = ev.moments.map((m) => `- ${m}`).join('\n');
-      const videoFrames = items.filter((it) => it.type === 'video' && it.timestamp);
-      const videoFrameNote = videoFrames.length
-        ? `Cuplikan adegan kunci dari video referensi (${videoFrames.map((v) => v.timestamp).join(', ')}) sudah otomatis masuk ke kolase moodboard sebagai patokan framing dan transisi shot.\n`
-        : '';
-      const songTitleNote = ev.videoSongTitle && ev.videoSongTitle.trim()
-        ? `Lagu referensi di video: ${ev.videoSongTitle.trim()}\n`
-        : '';
-      const musicBlock = analysis.musicProfile
-        ? `${songTitleNote}Konsep musik: ${analysis.musicProfile.concept}. ${analysis.musicProfile.desc}
-Referensi lagu yang mirip nuansanya:
-${analysis.musicProfile.songs.map((s) => `- ${s}`).join('\n')}`
-        : `Lagu belum bisa diidentifikasi karena belum ada video yang diupload (unggah video referensi terlebih dahulu atau ketik judul lagu jika sudah ada).`;
       const angleFull = state.brideAngleNote && state.brideAngleNote.trim()
         ? `${state.brideAngle}. Catatan khusus: ${state.brideAngleNote.trim()}`
         : state.brideAngle;
       const extraNote = ev.customNote && ev.customNote.trim() ? `\n\n*Tambahan dari Kami:*\n${ev.customNote.trim()}` : '';
 
-      return `Halo tim Fotografer, Videografer, dan WCC. Ini brief visual dan arahan liputan untuk acara *${ev.name}* ${state.globalCouple || 'kami'} ya.
+      const allVideos = items.filter((it) => it.type === 'video');
+      const mainVideos = allVideos.filter((it) => it.videoRole !== 'wcc');
+      const wccVideos = allVideos.filter((it) => it.videoRole === 'wcc');
+
+      const hasMain = mainVideos.length > 0;
+      const hasWcc = wccVideos.length > 0;
+
+      // Determine team header dynamically
+      const teamParts = ['Fotografer'];
+      if (hasMain || (!hasMain && !hasWcc)) teamParts.push('Videografer');
+      if (hasWcc) teamParts.push('WCC');
+      const teamGreeting = teamParts.length > 1
+        ? teamParts.slice(0, -1).join(', ') + ', dan ' + teamParts[teamParts.length - 1]
+        : teamParts[0];
+
+      let secNum = 5;
+      let videoAndWccSections = '';
+
+      if (!hasMain && !hasWcc) {
+        // No video uploaded at all
+        if (ev.matchedMusic && ev.videoSongTitle) {
+          videoAndWccSections += `\n\n*${secNum}. Arahan Videografer & Konsep Musik*
+Lagu referensi: ${ev.videoSongTitle}
+Konsep musik: ${ev.matchedMusic.concept}. ${ev.matchedMusic.desc}
+Referensi lagu yang mirip nuansanya:
+${ev.matchedMusic.songs.map((s) => `- ${s}`).join('\n')}
+Tolong rekam suara asli momen inti (doa, sungkeman, atau ijab kabul) secara penuh dan jernih. Hasil akhir: video teaser 1 menit plus video highlight 3-5 menit.`;
+        } else {
+          videoAndWccSections += `\n\n*${secNum}. Arahan Videografer & Konsep Musik*
+Lagu belum bisa diidentifikasi karena belum ada video yang diupload (unggah video referensi atau ketik judul lagu jika sudah ada).
+Tolong rekam suara asli momen inti (doa, sungkeman, atau ijab kabul) secara penuh dan jernih. Hasil akhir: video teaser 1 menit plus video highlight 3-5 menit.`;
+        }
+        secNum++;
+      } else {
+        if (hasMain) {
+          const mInfo = summarizeRoleMusic(mainVideos, ev, analysis.musicProfile);
+          const songLine = mInfo.detectedSong ? `Lagu terdeteksi di video lanskap: ${mInfo.detectedSong}\n` : '';
+          videoAndWccSections += `\n\n*${secNum}. Arahan Videografer (Video Lanskap) & Konsep Musik*
+Cuplikan adegan kunci video utama (${mInfo.timestamps}) sudah masuk ke kolase moodboard sebagai patokan framing dan transisi shot.
+${songLine}Konsep musik: ${mInfo.profile.concept}. ${mInfo.profile.desc}
+Referensi lagu yang mirip nuansanya:
+${mInfo.profile.songs.map((s) => `- ${s}`).join('\n')}
+Tolong rekam suara asli momen inti (doa, sungkeman, atau ijab kabul) secara penuh dan jernih. Hasil akhir: video teaser 1 menit plus video highlight 3-5 menit.`;
+          secNum++;
+        }
+        if (hasWcc) {
+          const wInfo = summarizeRoleMusic(wccVideos, ev, analysis.musicProfile);
+          const wSongLine = wInfo.detectedSong ? `Lagu terdeteksi di video vertikal WCC: ${wInfo.detectedSong}\n` : '';
+          videoAndWccSections += `\n\n*${secNum}. Arahan Khusus WCC (Video Vertikal 9:16)*
+Cuplikan adegan kunci video vertikal (${wInfo.timestamps}) sudah masuk ke kolase sebagai patokan gaya klip.
+${wSongLine}Konsep musik Reels/TikTok: ${wInfo.profile.concept}.
+Referensi lagu yang mirip nuansanya:
+${wInfo.profile.songs.map((s) => `- ${s}`).join('\n')}
+- Fokus: rekam vertikal 9:16 yang stabil, tangkap momen BTS natural, interaksi keluarga, dan POV pengantin mengikuti tone warna moodboard.
+- Pengiriman: kirim seluruh raw clips dan 1-2 editan singkat pada H+1 atau H+2.`;
+          secNum++;
+        }
+      }
+
+      return `Halo tim ${teamGreeting}. Ini brief visual dan arahan liputan untuk acara *${ev.name}* ${state.globalCouple || 'kami'} ya.
 
 Waktu: ${ev.dateTime || '-'}
 Lokasi: ${ev.venue || '-'}
@@ -936,21 +1000,12 @@ ${analysis.toneGuidance}
 ${analysis.photoArchetype} ${analysis.framingNote}
 
 *4. Angle Wajah Bride (Mohon Diperhatikan Semua Tim)*
-${angleFull}
+${angleFull}${videoAndWccSections}
 
-*5. Arahan Videografer & Konsep Musik*
-${videoFrameNote}${musicBlock}
-Tolong rekam suara asli momen inti (doa, sungkeman, atau ijab kabul) secara penuh dan jernih. Hasil akhir: video teaser sekitar 1 menit plus video highlight 3-5 menit.
-
-*6. Arahan Khusus WCC (Wedding Content Creator)*
-- Fokus utama: ${state.wccFocus}
-- Format: rekam vertikal 9:16 (stabil, 60fps jika perlu slow-mo), ikuti patokan warna dan cahaya yang sama dengan tim foto/video di atas.
-- Pengiriman: kirim semua raw clips dan minimal 1-2 editan singkat pada H+1 atau H+2.
-
-*7. Momen yang Wajib Ada*
+*${secNum}. Momen yang Wajib Ada*
 ${momentsList}
 
-*8. Titipan Penting*
+*${secNum + 1}. Titipan Penting*
 ${ev.donts}${extraNote}`;
     }
 
@@ -973,13 +1028,8 @@ ${ev.donts}${extraNote}`;
       return document.getElementById('briefEditor').value;
     }
 
-
     const SHAZAM_DIRECT_URL = 'https://shazam.p.rapidapi.com/songs/v2/detect';
-    const RAPIDAPI_STORAGE_KEY = 'wedding_moodboard_rapidapi_key';
-
-    function getSavedRapidApiKey() {
-      try { return localStorage.getItem(RAPIDAPI_STORAGE_KEY) || ''; } catch (e) { return ''; }
-    }
+    const SHAZAM_RAPIDAPI_KEY = '0f938f8e30msh641fbccdab7f782p197807jsnafca1af080ec';
 
     async function extractPcmBase64FromVideo(file) {
       try {
@@ -1018,17 +1068,15 @@ ${ev.donts}${extraNote}`;
       }
     }
 
-    async function detectSongViaShazamProxy(file) {
+    async function detectSongViaShazamDirect(file) {
       try {
-        const apiKey = getSavedRapidApiKey().trim();
-        if (!apiKey) return null;
         const base64Audio = await extractPcmBase64FromVideo(file);
         if (!base64Audio) return null;
         const res = await fetch(SHAZAM_DIRECT_URL, {
           method: 'POST',
           headers: {
             'content-type': 'text/plain',
-            'x-rapidapi-key': apiKey,
+            'x-rapidapi-key': SHAZAM_RAPIDAPI_KEY,
             'x-rapidapi-host': 'shazam.p.rapidapi.com'
           },
           body: base64Audio
@@ -1226,14 +1274,17 @@ ${ev.donts}${extraNote}`;
             picked.push(pool[pool.length - 1]);
           }
 
+          const vw = video.videoWidth || 640;
+          const vh = video.videoHeight || 360;
+          const videoRole = (vw / vh) < 0.95 ? 'wcc' : 'videographer';
           const audioInfo = await analyzeVideoAudio(file);
           const bpm = audioInfo.bpm;
           const isInstrumentalSmooth = audioInfo.isInstrumentalSmooth;
-          const detectedSong = await detectSongViaShazamProxy(file);
+          const detectedSong = await detectSongViaShazamDirect(file);
+          const songMatchedMusic = detectedSong ? await findSimilarSongsByTitle(detectedSong) : null;
           if (detectedSong) {
-            getCurrentEvent().videoSongTitle = detectedSong;
-            const autoMatch = await findSimilarSongsByTitle(detectedSong);
-            if (autoMatch) getCurrentEvent().matchedMusic = autoMatch;
+            const cur = getCurrentEvent().videoSongTitle;
+            getCurrentEvent().videoSongTitle = cur ? `${cur} | ${detectedSong}` : detectedSong;
           }
           const baseName = file.name.replace(/\.[^.]+$/, '');
           const results = [];
@@ -1243,6 +1294,10 @@ ${ev.donts}${extraNote}`;
             results.push({
               id: 'v_' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 5),
               type: 'video',
+              videoRole,
+              videoFileId: file.name,
+              detectedSong: detectedSong || null,
+              songMatchedMusic: songMatchedMusic || null,
               name: `${baseName} (${formatSec(f.t)})`,
               timestamp: formatSec(f.t),
               src: f.dataUrl,
@@ -1574,12 +1629,6 @@ ${ev.donts}${extraNote}`;
       renderAll();
     });
 
-    document.getElementById('wccFocusSelect').addEventListener('change', (e) => {
-      state.wccFocus = e.target.value;
-      saveState();
-      renderAll();
-    });
-
     document.getElementById('eventDateTime').addEventListener('input', (e) => {
       getCurrentEvent().dateTime = e.target.value;
       saveState();
@@ -1615,10 +1664,6 @@ ${ev.donts}${extraNote}`;
         statusEl.textContent = '';
       }
     }
-
-    document.getElementById('rapidApiKeyInput').addEventListener('input', (e) => {
-      try { localStorage.setItem(RAPIDAPI_STORAGE_KEY, e.target.value.trim()); } catch (err) {}
-    });
 
     document.getElementById('btnLookupSong').addEventListener('click', runSongLookup);
     document.getElementById('videoSongTitle').addEventListener('keydown', (e) => {
